@@ -1,11 +1,11 @@
 # Headless Shopify Storefront
 
-A minimal headless Shopify storefront built with **Vite + React**, talking to the
-Shopify **Storefront API** (GraphQL).
+A minimal headless Shopify storefront built with **Vite + React + TypeScript**,
+talking to the Shopify **Storefront API** (GraphQL).
 
 ## Features
 
-- `src/lib/shopify.js` — Storefront API client: `fetchProducts()`, `createCart()`, `addToCart()`, `getCart()`
+- `src/lib/shopify.ts` — typed Storefront API client: `fetchProducts()`, `createCart()`, `addToCart()`, `getCart()`
 - Products page with image, title, price, and **Add to Cart**
 - Cart sidebar with line items, total quantity, and a **Checkout** button that redirects to Shopify's hosted `checkoutUrl`
 - Cart state via React Context (`CartContext`), persisted to `localStorage`

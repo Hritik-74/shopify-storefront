@@ -1,14 +1,30 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  type ReactNode,
+} from 'react'
 import { createCart, addToCart as apiAddToCart, getCart } from '../lib/shopify'
+import type { Cart } from '../lib/types'
 
-const CartContext = createContext(null)
+interface CartContextValue {
+  cart: Cart | null
+  loading: boolean
+  error: string | null
+  addToCart: (variantId: string, quantity?: number) => Promise<void>
+  totalQuantity: number
+}
+
+const CartContext = createContext<CartContextValue | null>(null)
 
 const STORAGE_KEY = 'shopify_cart_id'
 
-export function CartProvider({ children }) {
-  const [cart, setCart] = useState(null)
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [cart, setCart] = useState<Cart | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
 
   // On mount, restore an existing cart from localStorage or create a new one.
   useEffect(() => {
@@ -18,7 +34,7 @@ export function CartProvider({ children }) {
       setLoading(true)
       try {
         const savedId = localStorage.getItem(STORAGE_KEY)
-        let activeCart = null
+        let activeCart: Cart | null = null
 
         if (savedId) {
           activeCart = await getCart(savedId)
@@ -32,7 +48,7 @@ export function CartProvider({ children }) {
 
         if (!cancelled) setCart(activeCart)
       } catch (err) {
-        if (!cancelled) setError(err.message)
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -45,7 +61,7 @@ export function CartProvider({ children }) {
   }, [])
 
   const addToCart = useCallback(
-    async (variantId, quantity = 1) => {
+    async (variantId: string, quantity = 1) => {
       if (!cart) return
       setLoading(true)
       setError(null)
@@ -53,7 +69,7 @@ export function CartProvider({ children }) {
         const updated = await apiAddToCart(cart.id, variantId, quantity)
         setCart(updated)
       } catch (err) {
-        setError(err.message)
+        setError(err instanceof Error ? err.message : String(err))
       } finally {
         setLoading(false)
       }
@@ -63,7 +79,7 @@ export function CartProvider({ children }) {
 
   const totalQuantity = cart?.totalQuantity ?? 0
 
-  const value = {
+  const value: CartContextValue = {
     cart,
     loading,
     error,
@@ -74,7 +90,7 @@ export function CartProvider({ children }) {
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
 
-export function useCart() {
+export function useCart(): CartContextValue {
   const ctx = useContext(CartContext)
   if (!ctx) {
     throw new Error('useCart must be used within a CartProvider')

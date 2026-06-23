@@ -1,6 +1,7 @@
 import { useCart } from '../context/CartContext'
+import type { Money } from '../lib/types'
 
-function formatPrice(price) {
+function formatPrice(price: Money | null): string {
   if (!price) return ''
   const amount = Number(price.amount).toFixed(2)
   return `${amount} ${price.currencyCode}`

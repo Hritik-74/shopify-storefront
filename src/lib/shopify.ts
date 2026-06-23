@@ -1,17 +1,32 @@
 // Shopify Storefront API client.
 // Talks to the GraphQL Storefront API using a public storefront access token.
 
+import type { Cart, Product } from './types'
+
 const DOMAIN = import.meta.env.VITE_SHOPIFY_DOMAIN
 const TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN
 const API_VERSION = '2024-10'
 
 const ENDPOINT = `https://${DOMAIN}/api/${API_VERSION}/graphql.json`
 
+interface GraphQLResponse<T> {
+  data: T
+  errors?: { message: string }[]
+}
+
+interface UserError {
+  field: string[] | null
+  message: string
+}
+
 /**
  * Low-level helper: POST a GraphQL query/mutation and return `data`.
  * Throws on network errors or GraphQL `errors`.
  */
-async function shopifyFetch(query, variables = {}) {
+async function shopifyFetch<T>(
+  query: string,
+  variables: Record<string, unknown> = {}
+): Promise<T> {
   if (!DOMAIN || !TOKEN) {
     throw new Error(
       'Missing Shopify config. Set VITE_SHOPIFY_DOMAIN and VITE_SHOPIFY_STOREFRONT_TOKEN in your .env file.'
@@ -31,7 +46,7 @@ async function shopifyFetch(query, variables = {}) {
     throw new Error(`Shopify request failed: ${res.status} ${res.statusText}`)
   }
 
-  const json = await res.json()
+  const json = (await res.json()) as GraphQLResponse<T>
 
   if (json.errors) {
     throw new Error(json.errors.map((e) => e.message).join('; '))
@@ -68,11 +83,26 @@ const CART_FRAGMENT = `
   }
 `
 
+interface ProductsQuery {
+  products: {
+    edges: {
+      node: {
+        id: string
+        title: string
+        description: string
+        handle: string
+        featuredImage: { url: string; altText: string | null } | null
+        priceRange: { minVariantPrice: { amount: string; currencyCode: string } }
+        variants: { edges: { node: { id: string; availableForSale: boolean } }[] }
+      }
+    }[]
+  }
+}
+
 /**
  * Fetch all products (first 100) with their first variant and image.
- * Returns a flattened array of product objects.
  */
-export async function fetchProducts() {
+export async function fetchProducts(): Promise<Product[]> {
   const query = `
     query Products {
       products(first: 100) {
@@ -100,7 +130,7 @@ export async function fetchProducts() {
     }
   `
 
-  const data = await shopifyFetch(query)
+  const data = await shopifyFetch<ProductsQuery>(query)
 
   return data.products.edges.map(({ node }) => {
     const variant = node.variants.edges[0]?.node
@@ -118,9 +148,9 @@ export async function fetchProducts() {
 }
 
 /**
- * Create a new (empty) cart. Returns the cart object.
+ * Create a new (empty) cart.
  */
-export async function createCart() {
+export async function createCart(): Promise<Cart> {
   const query = `
     mutation CartCreate {
       cartCreate {
@@ -130,7 +160,9 @@ export async function createCart() {
     }
   `
 
-  const data = await shopifyFetch(query)
+  const data = await shopifyFetch<{
+    cartCreate: { cart: Cart; userErrors: UserError[] }
+  }>(query)
   const { cart, userErrors } = data.cartCreate
 
   if (userErrors?.length) {
@@ -142,11 +174,12 @@ export async function createCart() {
 
 /**
  * Add a variant to an existing cart.
- * @param {string} cartId   - Shopify cart GID
- * @param {string} variantId - ProductVariant GID
- * @param {number} quantity  - defaults to 1
  */
-export async function addToCart(cartId, variantId, quantity = 1) {
+export async function addToCart(
+  cartId: string,
+  variantId: string,
+  quantity = 1
+): Promise<Cart> {
   const query = `
     mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
       cartLinesAdd(cartId: $cartId, lines: $lines) {
@@ -161,7 +194,9 @@ export async function addToCart(cartId, variantId, quantity = 1) {
     lines: [{ merchandiseId: variantId, quantity }],
   }
 
-  const data = await shopifyFetch(query, variables)
+  const data = await shopifyFetch<{
+    cartLinesAdd: { cart: Cart; userErrors: UserError[] }
+  }>(query, variables)
   const { cart, userErrors } = data.cartLinesAdd
 
   if (userErrors?.length) {
@@ -172,15 +207,15 @@ export async function addToCart(cartId, variantId, quantity = 1) {
 }
 
 /**
- * Fetch an existing cart by id.
+ * Fetch an existing cart by id. Returns null if it no longer exists.
  */
-export async function getCart(cartId) {
+export async function getCart(cartId: string): Promise<Cart | null> {
   const query = `
     query GetCart($cartId: ID!) {
       cart(id: $cartId) { ${CART_FRAGMENT} }
     }
   `
 
-  const data = await shopifyFetch(query, { cartId })
+  const data = await shopifyFetch<{ cart: Cart | null }>(query, { cartId })
   return data.cart
 }

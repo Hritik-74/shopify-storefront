@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
 import { fetchProducts } from '../lib/shopify'
 import { useCart } from '../context/CartContext'
+import type { Money, Product } from '../lib/types'
 
-function formatPrice(price) {
+function formatPrice(price: Money | null): string {
   if (!price) return ''
   const amount = Number(price.amount).toFixed(2)
   return `${amount} ${price.currencyCode}`
 }
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState([])
+  const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   const { addToCart, loading: cartLoading } = useCart()
 
   useEffect(() => {
@@ -21,7 +22,7 @@ export default function ProductsPage() {
         if (!cancelled) setProducts(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message)
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -53,7 +54,7 @@ export default function ProductsPage() {
           <button
             className="btn"
             disabled={!product.availableForSale || !product.variantId || cartLoading}
-            onClick={() => addToCart(product.variantId)}
+            onClick={() => product.variantId && addToCart(product.variantId)}
           >
             {product.availableForSale ? 'Add to Cart' : 'Sold out'}
           </button>
