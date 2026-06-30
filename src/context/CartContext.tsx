@@ -6,8 +6,8 @@ import {
   useCallback,
   type ReactNode,
 } from 'react'
-import { createCart, addToCart as apiAddToCart, getCart } from '../lib/shopify'
-import type { Cart } from '../lib/types'
+import { createCart, addToCart as apiAddToCart, getCart } from '@/api/shopify'
+import type { Cart } from '@/types'
 
 interface CartContextValue {
   cart: Cart | null
@@ -15,6 +15,9 @@ interface CartContextValue {
   error: string | null
   addToCart: (variantId: string, quantity?: number) => Promise<void>
   totalQuantity: number
+  isOpen: boolean
+  openCart: () => void
+  closeCart: () => void
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
@@ -25,6 +28,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
+
+  const openCart = useCallback(() => setIsOpen(true), [])
+  const closeCart = useCallback(() => setIsOpen(false), [])
 
   // On mount, restore an existing cart from localStorage or create a new one.
   useEffect(() => {
@@ -68,6 +75,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       try {
         const updated = await apiAddToCart(cart.id, variantId, quantity)
         setCart(updated)
+        setIsOpen(true) // reveal the cart drawer so the shopper sees what they added
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
       } finally {
@@ -85,6 +93,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     error,
     addToCart,
     totalQuantity,
+    isOpen,
+    openCart,
+    closeCart,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

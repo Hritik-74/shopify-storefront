@@ -17,8 +17,23 @@ export interface Product {
   handle: string
   image: ShopifyImage | null
   price: Money
+  /** Original price when the item is on sale (higher than `price`), else null. */
+  compareAtPrice: Money | null
   variantId: string | null
   availableForSale: boolean
+}
+
+export interface ProductDetail extends Product {
+  images: ShopifyImage[]
+}
+
+export interface Collection {
+  id: string
+  title: string
+  handle: string
+  description: string
+  image: ShopifyImage | null
+  productCount: number
 }
 
 export interface CartLineMerchandise {

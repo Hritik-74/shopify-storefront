@@ -1,206 +1,115 @@
-:root {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  color: #1a1a1a;
+@import 'tailwindcss';
+@import 'flickity/css/flickity.css';
+
+/* ---------- Design tokens (Tailwind v4 theme) ---------- */
+@theme {
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --color-ink: #1a1a1a;
+  --color-ink-soft: #6b7280;
+  --color-paper: #ffffff;
+  --color-cream: #f6f7f9;
+  --color-line: #e7e7ea;
+  --color-accent: #e11d2a;
+  --color-accent-dark: #b91722;
+
+  --tracking-label: 0.14em;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  background: #f7f7f7;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.cart-count {
-  font-size: 1rem;
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  align-items: start;
-}
-
-@media (max-width: 768px) {
-  .layout {
-    grid-template-columns: 1fr;
+/* ---------- Base ---------- */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+  /* GSAP reveal: hidden until ScrollTrigger plays. JS removes this once mounted. */
+  .reveal-ready [data-reveal] {
+    opacity: 0;
   }
 }
 
-/* Products */
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
+/* ---------- Reusable component classes ---------- */
+@layer components {
+  .label {
+    @apply text-xs font-semibold uppercase;
+    letter-spacing: var(--tracking-label);
+  }
+  .display {
+    @apply font-display font-bold leading-[1.05] tracking-[-0.015em];
+  }
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg border border-accent bg-accent px-6 py-3
+      text-sm font-semibold text-white transition hover:border-accent-dark hover:bg-accent-dark
+      disabled:cursor-not-allowed disabled:border-neutral-300 disabled:bg-neutral-300;
+  }
+  .btn-accent {
+    @apply border-accent bg-accent hover:border-accent-dark hover:bg-accent-dark;
+  }
+  .btn-dark {
+    @apply border-ink bg-ink text-white hover:border-neutral-800 hover:bg-neutral-800;
+  }
+  .card {
+    @apply overflow-hidden rounded-2xl border border-line bg-paper
+      shadow-[0_1px_2px_rgba(11,13,18,0.04)] transition
+      hover:-translate-y-1 hover:shadow-[0_18px_40px_-18px_rgba(11,13,18,0.25)];
+  }
+  .btn-ghost {
+    @apply border-white bg-transparent text-white hover:bg-white hover:text-ink hover:opacity-100;
+  }
+  .btn-outline {
+    @apply border-ink bg-transparent text-ink hover:bg-ink hover:text-white hover:opacity-100;
+  }
+  .container-x {
+    @apply mx-auto w-full max-w-[1280px] px-5 sm:px-8;
+  }
 }
 
-.product-card {
+/* ---------- Flickity overrides ---------- */
+.flickity-page-dots {
+  bottom: 1rem;
+}
+.flickity-page-dots .dot {
+  width: 8px;
+  height: 8px;
   background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
+  opacity: 0.5;
+  margin: 0 5px;
 }
-
-.product-image {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 6px;
-  background: #f0f0f0;
+.flickity-page-dots .dot.is-selected {
+  opacity: 1;
 }
-
-.product-image.placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #999;
-  font-size: 0.85rem;
+.flickity-prev-next-button {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 0;
 }
-
-.product-title {
-  font-size: 1rem;
-  margin: 0.75rem 0 0.25rem;
-}
-
-.product-price {
-  margin: 0 0 0.75rem;
-  color: #555;
-  font-weight: 600;
-}
-
-/* Buttons */
-.btn {
-  margin-top: auto;
-  padding: 0.6rem 1rem;
-  border: none;
-  border-radius: 6px;
-  background: #1a1a1a;
-  color: #fff;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.btn:hover:not(:disabled) {
-  background: #333;
-}
-
-.btn:disabled {
-  background: #bbb;
-  cursor: not-allowed;
-}
-
-.btn-checkout {
-  width: 100%;
-  margin-top: 1rem;
-  background: #2e7d32;
-}
-
-.btn-checkout:hover:not(:disabled) {
-  background: #1b5e20;
-}
-
-/* Cart */
-.cart {
+.flickity-prev-next-button:hover {
   background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  padding: 1rem;
-  position: sticky;
-  top: 1.5rem;
+}
+.flickity-button:disabled {
+  display: none;
+}
+/* product carousels: no clipping of hover buttons */
+.carousel .flickity-viewport {
+  overflow: visible;
+}
+.carousel {
+  overflow: hidden;
 }
 
-.cart h2 {
-  margin: 0 0 1rem;
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+/* Marquee */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
-
-.badge {
-  background: #1a1a1a;
-  color: #fff;
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
-  font-size: 0.75rem;
-}
-
-.cart-lines {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.cart-line {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.cart-line-image {
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.cart-line-info {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  font-size: 0.85rem;
-}
-
-.cart-line-title {
-  font-weight: 600;
-}
-
-.cart-line-variant,
-.cart-line-qty {
-  color: #777;
-  font-size: 0.78rem;
-}
-
-.cart-line-price {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.cart-total {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #e5e5e5;
-}
-
-/* Status messages */
-.status {
-  color: #666;
-  padding: 1rem 0;
-}
-
-.status.error {
-  color: #c62828;
+.animate-marquee {
+  animation: marquee 22s linear infinite;
 }
